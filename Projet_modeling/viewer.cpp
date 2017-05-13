@@ -1,7 +1,7 @@
 #include "viewer.h"
 #include <QGLViewer/camera.h>
 #include <QGLViewer/vec.h>
-
+#include <QDebug>
 #include <QKeyEvent>
 #include <iomanip>
 
@@ -53,7 +53,22 @@ void Viewer::init()
 
 void Viewer::draw_repere(const Mat4& global)
 {
-	// affiche un repere de taille 1 place suivant global.
+        Mat4 tr = global;
+        m_prim.draw_sphere(global*scale(0.5,0.5,0.5), BLANC);
+        auto fleche = [&] (Vec3 coul)
+        {
+            m_prim.draw_cylinder(tr*translate(0,0,0.5)*scale(0.25,0.25,1), coul);
+            m_prim.draw_cone(tr*translate(0,0,1)*scale(0.5,0.5,0.5), coul);
+        };
+
+        fleche(BLEU);
+
+        tr = global*rotateY(90);
+        fleche(ROUGE);
+
+        tr = global*rotateX(-90);
+        fleche(VERT);
+
 }
 
 
@@ -66,7 +81,7 @@ void Viewer::draw()
 
 	m_mesh.draw(CYAN);
 
-	draw_repere(m_selected_frame);
+    draw_repere(m_selected_frame);
 }
 
 
