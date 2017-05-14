@@ -71,9 +71,14 @@ protected:
 	glm::mat4 m_selected_frame;
 
     /**
-     * @brief AlgoStar effectue la figure de l'étoile du pdf quand le cube est crée
+     * @brief AlgoStar crée l'étoile du pdf quand le cube est crée
      */
     void algoStar();
+
+    /**
+     * @brief escargot crée la figure escargot du pdf quand le cube est crée
+     */
+    void escargot();
 };
 
 #endif

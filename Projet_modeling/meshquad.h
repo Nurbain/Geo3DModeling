@@ -12,7 +12,8 @@ class MeshQuad
 {
 	/// Points
 	std::vector<Vec3> m_points;
-	/// indice de quads
+
+    /// indice de quads
     std::vector<int> m_quad_indices;
 
 	///OpenGL
@@ -31,10 +32,14 @@ class MeshQuad
 	/// nombre d'aretes
 	int m_nb_ind_edges;
 
+    ///nombre de quad
+    int m_nb_ind_quad;
+
 public:
+
     MeshQuad();
 
-    inline int nb_quads() const { return m_quad_indices.size()/4;}
+    inline int nb_quads() const { return m_nb_ind_quad/4;}
 
 	inline int nb_edges() const { return m_nb_ind_edges/2;}
 

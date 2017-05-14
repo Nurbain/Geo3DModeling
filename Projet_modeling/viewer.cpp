@@ -94,12 +94,14 @@ void Viewer::keyPressEvent(QKeyEvent *event)
 			exit(EXIT_SUCCESS);
 			break;
 
+        //Crée le cube
 		case Qt::Key_C:
 			// Attention ctrl c utilise pour screen-shot !
 			if (!(event->modifiers() & Qt::ControlModifier))
 				m_mesh.create_cube();
 		break;
 
+        //Extrude depuis la face selectionné
         case Qt::Key_E:
             if(m_selected_quad == -1)
                 break;
@@ -107,6 +109,7 @@ void Viewer::keyPressEvent(QKeyEvent *event)
             m_mesh.extrude_quad(m_selected_quad);
             break;
 
+        //Agrandis le cube
         case Qt::Key_Plus :
             if(m_selected_quad == -1)
                 break;
@@ -115,6 +118,7 @@ void Viewer::keyPressEvent(QKeyEvent *event)
 
             break;
 
+        //Retrecis le cube
         case Qt::Key_Minus :
             if(m_selected_quad == -1)
                 break;
@@ -123,6 +127,7 @@ void Viewer::keyPressEvent(QKeyEvent *event)
 
             break;
 
+        //Shrink en plus petit ou plus grand suivant si shift est activé
         case Qt::Key_Z :
             if(m_selected_quad == -1)
                 break;
@@ -133,7 +138,7 @@ void Viewer::keyPressEvent(QKeyEvent *event)
 
         break;
 
-
+        //Tourne d'un sens ou l'autre suivant si shift est activé
         case Qt::Key_T :
             if(m_selected_quad == -1)
                 break;
@@ -145,12 +150,16 @@ void Viewer::keyPressEvent(QKeyEvent *event)
 
         break;
 
+        //Recrée l'étoile
         case Qt::Key_S :
-            if(m_mesh.m_quad_indices == 0)
-                break;
-
+             m_mesh.create_cube();
              algoStar();
         break;
+
+        case Qt::Key_G :
+             m_mesh.create_cube();
+             escargot();
+             break;
 
 		default:
 			break;
@@ -161,6 +170,45 @@ void Viewer::keyPressEvent(QKeyEvent *event)
 	QGLViewer::keyPressEvent(event);
 }
 
+//Reproduit l'étoile du pdf
+void Viewer::algoStar()
+{
+    int last = 6;
+    int angle =1;
+    for(int i=0;i<6;i++)
+    {
+        //quad du cube de base selectionné
+        for(int j =1 ; j<=20;j++)
+        {
+            m_mesh.extrude_quad(i);
+            m_mesh.decale_quad(i,-0.5);
+            m_mesh.tourne_quad(i,0.6*angle);
+            m_mesh.shrink_quad(i,-0.1);
+            last++;
+            angle++;
+        }
+        angle=1;
+    }
+    m_selected_quad = -1;
+}
+
+//Reproduit l'escargot du pdf
+void Viewer::escargot()
+{
+    int quad = 1;
+    int q = 6;
+    m_mesh.shrink_quad(5,-0.01);
+    m_mesh.extrude_quad(1);
+    for(int i=0;i<50;i++)
+    {
+        m_mesh.shrink_quad(q,-0.05);
+        m_mesh.extrude_quad(quad);
+        m_mesh.shrink_quad(quad,-0.05);
+        q=q+4;
+    }
+
+
+}
 
 void Viewer::mousePressEvent(QMouseEvent* event)
 {
@@ -176,6 +224,7 @@ void Viewer::mousePressEvent(QMouseEvent* event)
 		if (m_selected_quad>=0)
 		{
 			m_selected_frame = m_mesh.local_frame(m_selected_quad);
+            qDebug() << m_selected_quad;
 		}
 	}
 
@@ -211,24 +260,3 @@ Mat4 Viewer::getCurrentProjectionMatrix() const
 	return pm;
 }
 
-//Reproduit l'étoile du pdf
-void Viewer::algoStar()
-{
-    int last = 6;
-    int angle =1;
-    for(int i=0;i<6;i++)
-    {
-        //quad du cube de base selectionné
-        for(int j =1 ; j<=20;j++)
-        {
-            m_mesh.extrude_quad(i);
-            m_mesh.decale_quad(i,-0.5);
-            m_mesh.tourne_quad(i,0.6*angle);
-            m_mesh.shrink_quad(i,-0.1);
-            last++;
-            angle++;
-        }
-        angle=1;
-    }
-    m_selected_quad = -1;
-}

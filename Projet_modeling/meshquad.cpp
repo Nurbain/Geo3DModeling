@@ -3,7 +3,7 @@
 #include <QDebug>
 
 MeshQuad::MeshQuad():
-	m_nb_ind_edges(0)
+    m_nb_ind_edges(0),m_nb_ind_quad(0)
 {
 
 }
@@ -58,6 +58,8 @@ void MeshQuad::gl_update()
 	std::vector<int> edge_indices;
 	convert_quads_to_edges(m_quad_indices,edge_indices);
 	m_nb_ind_edges = edge_indices.size();
+
+    m_nb_ind_quad = m_quad_indices.size()/4;
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo2);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,m_nb_ind_edges * sizeof(int), &(edge_indices[0]), GL_STATIC_DRAW);
@@ -354,10 +356,10 @@ bool MeshQuad::is_points_in_quad(const Vec3& P, const Vec3& A, const Vec3& B, co
 
 
       Vec3 normale = normal_of_quad(A,B,C,D);
-      Vec3 AB = cross(n,B-A);
-      Vec3 BC = cross(n,C-B);
-      Vec3 CD = cross(n,D-C);
-      Vec3 DA = cross(n,A-D);
+      Vec3 AB = cross(normale,B-A);
+      Vec3 BC = cross(normale,C-B);
+      Vec3 CD = cross(normale,D-C);
+      Vec3 DA = cross(normale,A-D);
 
       double ScalAB = dot(AB,P);
       double ScaleBC = dot(BC,P);
