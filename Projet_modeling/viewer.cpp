@@ -197,13 +197,13 @@ void Viewer::escargot()
 {
     int quad = 1;
     int q = 6;
-    m_mesh.shrink_quad(5,-0.01);
+    m_mesh.shrink_quad(5,-0.1);
     m_mesh.extrude_quad(1);
-    for(int i=0;i<50;i++)
+    for(int i=0;i<100;i++)
     {
-        m_mesh.shrink_quad(q,-0.05);
+        m_mesh.shrink_quad(q,-0.1);
         m_mesh.extrude_quad(quad);
-        m_mesh.shrink_quad(quad,-0.05);
+        //m_mesh.shrink_quad(quad,-0.01);
         q=q+4;
     }
 
