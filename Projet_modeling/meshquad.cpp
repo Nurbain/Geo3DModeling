@@ -244,6 +244,7 @@ void MeshQuad::create_cube()
     int g = add_vertex(Vec3(1,1,1));
     int h = add_vertex(Vec3(1,1,-1));
 
+
     //6 faces
     add_quad(a,d,c,b);
     add_quad(e,f,g,h);
@@ -251,15 +252,6 @@ void MeshQuad::create_cube()
     add_quad(e,d,a,f);
     add_quad(f,a,b,g);
     add_quad(g,b,c,h);
-
-    qDebug() << "Aire : " << area_of_quad(Vec3(-1,-1,1),Vec3(1,-1,1),Vec3(1,-1,-1),Vec3(-1,-1,-1));
-
-    qDebug() << "il es dans le quad " << is_points_in_quad(Vec3(0,-10,0),Vec3(-1,-1,1),Vec3(1,-1,1),Vec3(1,-1,-1),Vec3(-1,-1,-1));
-
-    Vec3 test =  normal_of_quad(Vec3(0,0,0),Vec3(1,0,0),Vec3(1,0,1),Vec3(0,0,1));
-    qDebug() << test.x;
-    qDebug() << test.y;
-    qDebug() << test.z;
 
     gl_update();
 }
@@ -418,6 +410,7 @@ bool MeshQuad::is_points_in_quad(const Vec3& P, const Vec3& A, const Vec3& B, co
 
 bool MeshQuad::intersect_ray_quad(const Vec3& P, const Vec3& Dir, int q, Vec3& inter)
 {
+    bool res = false;
 	// recuperation des indices de points
     int i1 = m_quad_indices[q*4];
     int i2 = m_quad_indices[q*4+1];
@@ -444,33 +437,45 @@ bool MeshQuad::intersect_ray_quad(const Vec3& P, const Vec3& Dir, int q, Vec3& i
     Vec3 I = P + alpha*Dir;
 	// I dans le quad ?
     //regarder si I dans le plan
+    if(glm::dot(normal,I) != dequation)
+        return false;
+
     // si dans le plan alors test dans le quad
     if(is_points_in_quad(I,A,B,C,D))
     {
+        res = true;
         inter = I;
-        return true;
     }
 
-    return false;
+    return res;
 }
 
 
 int MeshQuad::intersected_visible(const Vec3& P, const Vec3& Dir)
 {
     int inter = -1;
-    Vec3 intersection;
-    float dist=std::numeric_limits<float>::max(),disttmp;
+    Vec3 intersection = Vec3(0,0,0);
+    Vec3 precintersection = Vec3(0,0,0);
+
     // on parcours tous les quads
     for(int i =0 ; i< m_quad_indices.size() ; i = i+4)
     {
          // on teste si il y a intersection avec le rayon
         if(intersect_ray_quad(P,Dir,i/4,intersection))
         {
-            disttmp = glm::length(P-intersection);
-            if(disttmp < dist)
+
+            if(i/4 == 0)
             {
-                dist = disttmp;
+                precintersection = intersection;
                 inter = i/4;
+            }
+            else
+            {
+                if(glm::distance(P, intersection) < glm::distance(P, precintersection))
+                {
+                    precintersection = intersection;
+                    inter = i/4;
+                }
             }
         }
     }
@@ -478,12 +483,11 @@ int MeshQuad::intersected_visible(const Vec3& P, const Vec3& Dir)
     // on garde le plus proche (de P)
 
     return inter;
+
 }
 
-//#############################################
 
-//A FAIRE
-Mat4 MeshQuad::local_frame(int q)
+Mat4 MeshQuad::local_frame  (int q)
 {
     // Repere locale = Matrice de transfo avec
     // les trois premieres colones: X,Y,Z locaux
@@ -499,6 +503,7 @@ Mat4 MeshQuad::local_frame(int q)
     int i2 = m_quad_indices[q*4+1];
     int i3 = m_quad_indices[q*4+2];
     int i4 = m_quad_indices[q*4+3];
+
     // recuperation des points
     Vec3 A = m_points[i1];
     Vec3 B = m_points[i2];
@@ -511,66 +516,132 @@ Mat4 MeshQuad::local_frame(int q)
     Vec3 Y = cross(N,X);
 
     // calcul du centre
-    Vec3 ctr = A+B+C+D;
-    ctr.x = ctr.x / 4;
-    ctr.y = ctr.y / 4;
-    ctr.z = ctr.z / 4;
+    Vec3 centre = A+B+C+D;
+    centre.x = centre.x / 4;
+    centre.y = centre.y / 4;
+    centre.z = centre.z / 4;
 
     // calcul de la taille
 
     float taille = length(B-A)/2;
 
     // calcul de la matrice
+    Mat4 res = Mat4(Vec4(X,0),Vec4(Y,0),Vec4(N,0),Vec4(centre,1));
+    res*scale(taille,taille,taille);
 
 
-
-    return (Mat4(Vec4(X,0),Vec4(Y,0),Vec4(N,0),Vec4(ctr,1)) * scale(taille,taille,taille));
+    return res;
 }
 
 void MeshQuad::extrude_quad(int q)
 {
-	// recuperation des indices de points
+    // recuperation des indices de points
+    int i1 = m_quad_indices[q*4];
+    int i2 = m_quad_indices[q*4+1];
+    int i3 = m_quad_indices[q*4+2];
+    int i4 = m_quad_indices[q*4+3];
 
-	// recuperation des points
+    // recuperation des points
+    //Point ABCD du quad
+    Vec3 A = m_points[i1];
+    Vec3 B = m_points[i2];
+    Vec3 C = m_points[i3];
+    Vec3 D = m_points[i4];
 
-	// calcul de la normale
+    // calcul de la normale
+    Vec3 normal = normal_of_quad(A,B,C,D);
 
-	// calcul de la hauteur
+    // calcul de la hauteur
+    float hauteur = sqrt(area_of_quad(A,B,C,D));
+    Vec3 A2,B2,C2,D2;
 
-	// calcul et ajout des 4 nouveaux points
+    A2 = A+(hauteur*normal);
+    B2 = B+(hauteur*normal);
+    C2 = C+(hauteur*normal);
+    D2 = D+(hauteur*normal);
 
-	// on remplace le quad initial par le quad du dessu
 
-	// on ajoute les 4 quads des cotes
 
-	gl_update();
+
+    int a2 = add_vertex(A2);
+    int b2 = add_vertex(B2);
+    int c2 = add_vertex(C2);
+    int d2 = add_vertex(D2);
+
+    // on ajoute les 4 quads des cotes
+    add_quad(d2,c2,i3,i4);
+    add_quad(c2,b2,i2,i3);
+    add_quad(b2,a2,i1,i2);
+    add_quad(a2,d2,i4,i1);
+
+
+
+    // on remplace le quad initial par le quad du dessu
+    m_quad_indices[q*4] = a2;
+    m_quad_indices[q*4+1] = b2;
+    m_quad_indices[q*4+2] = c2;
+    m_quad_indices[q*4+3] = d2;
+
+    gl_update();
+
+
 }
-
 
 void MeshQuad::decale_quad(int q, float d)
 {
-	// recuperation des indices de points
+    // recuperation des indices de points
+    int i1 = m_quad_indices[q*4];
+    int i2 = m_quad_indices[q*4+1];
+    int i3 = m_quad_indices[q*4+2];
+    int i4 = m_quad_indices[q*4+3];
 
-	// recuperation des (references de) points
+    // recuperation des (references de) points
+    Vec3 *A = &m_points[i1];
+    Vec3 *B = &m_points[i2];
+    Vec3 *C = &m_points[i3];
+    Vec3 *D = &m_points[i4];
 
-	// calcul de la normale
+    // calcul de la normale
+    Vec3 normal = normal_of_quad(*A,*B,*C,*D);
 
-	// modification des points
+    // modification des points
+    float decal = sqrt(area_of_quad(*A,*B,*C,*D)) * d;
 
-	gl_update();
+    *A = *A+(decal*normal);
+    *B = *B+(decal*normal);
+    *C = *C+(decal*normal);
+    *D = *D+(decal*normal);
+
+
+    gl_update();
 }
-
 
 void MeshQuad::shrink_quad(int q, float s)
 {
-	// recuperation des indices de points
+    // recuperation des indices de points
+    int i1 = m_quad_indices[q*4];
+    int i2 = m_quad_indices[q*4+1];
+    int i3 = m_quad_indices[q*4+2];
+    int i4 = m_quad_indices[q*4+3];
 
-	// recuperation des (references de) points
+    // recuperation des (references de) points
+    Vec3 *A = &m_points[i1];
+    Vec3 *B = &m_points[i2];
+    Vec3 *C = &m_points[i3];
+    Vec3 *D = &m_points[i4];
 
 	// ici  pas besoin de passer par une matrice
 	// calcul du centre
+    Vec3 centre = *A+*B+*C+*D;
+    centre.x = centre.x / 4;
+    centre.y = centre.y / 4;
+    centre.z = centre.z / 4;
 
 	 // modification des points
+    *A += (*A-centre) * s;
+    *B += (*B-centre) * s;
+    *C += (*C-centre) * s;
+    *D += (*D-centre) * s;
 
 	gl_update();
 }
@@ -578,16 +649,50 @@ void MeshQuad::shrink_quad(int q, float s)
 
 void MeshQuad::tourne_quad(int q, float a)
 {
-	// recuperation des indices de points
+    // recuperation des indices de points
+    int i1 = m_quad_indices[q*4];
+    int i2 = m_quad_indices[q*4+1];
+    int i3 = m_quad_indices[q*4+2];
+    int i4 = m_quad_indices[q*4+3];
 
-	// recuperation des (references de) points
+    // recuperation des (references de) points
+    Vec3 *A = &m_points[i1];
+    Vec3 *B = &m_points[i2];
+    Vec3 *C = &m_points[i3];
+    Vec3 *D = &m_points[i4];
 
 	// generation de la matrice de transfo:
-	// tourne autour du Z de la local frame
-	// indice utilisation de glm::inverse()
+    Vec4 AR = Vec4(*A,1);
+    Vec4 BR = Vec4(*B,1);
+    Vec4 CR = Vec4(*C,1);
+    Vec4 DR = Vec4(*D,1);
 
-	// Application au 4 points du quad
+    // tourne autour du Z de la local frame
+    Mat4 transfo ;
+    transfo = local_frame(q)*rotateZ(a)*glm::inverse(local_frame(q));
 
+    //transformation avec les coordonées homogènes
+    AR = transfo*AR;
+    BR = transfo*BR;
+    CR = transfo*CR;
+    DR = transfo*DR;
+
+    //Modification des coordonées existante
+    A->x = AR.x;
+    A->y = AR.y;
+    A->z = AR.z;
+
+    B->x = BR.x;
+    B->y = BR.y;
+    B->z = BR.z;
+
+    C->x = CR.x;
+    C->y = CR.y;
+    C->z = CR.z;
+
+    D->x = DR.x;
+    D->y = DR.y;
+    D->z = DR.z;
 
 	gl_update();
 }

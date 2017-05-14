@@ -21,6 +21,8 @@ class Viewer : public QGLViewer
 
 public:
     Viewer();
+    int quad;
+    int angle;
 
 protected:
 	/// OpenGL intialisation appelee par la QGLViewer
@@ -68,6 +70,10 @@ protected:
 	int m_selected_quad;
 	glm::mat4 m_selected_frame;
 
+    /**
+     * @brief AlgoStar effectue la figure de l'étoile du pdf quand le cube est crée
+     */
+    void algoStar();
 };
 
 #endif

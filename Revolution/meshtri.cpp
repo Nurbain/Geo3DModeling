@@ -106,65 +106,150 @@ void MeshTri::draw_smooth(const Vec3& color)
 
 void MeshTri::clear()
 {
+    m_points.clear();
+     m_normals.clear();
+     m_indices.clear();
 }
 
 
 int MeshTri::add_vertex(const Vec3& P)
 {
-    return 0;
+    m_points.push_back(P);
+    return m_points.size()-1;
 }
 
 int MeshTri::add_normal(const Vec3& N)
 {
-    return 0;
+    m_normals.push_back(N);
+    return m_normals.size()-1;
 }
 
 void MeshTri::add_tri(int i1, int i2, int i3)
 {
+    m_indices.push_back(i1);
+   m_indices.push_back(i2);
+   m_indices.push_back(i3);
 }
 
 void MeshTri::add_quad(int i1, int i2, int i3, int i4)
 {
-	// decoupe le quad en 2 triangles: attention a l'ordre
+    add_tri(i1,i2,i3);
+    add_tri(i1,i3,i4);
 }
 
 
 void MeshTri::create_pyramide()
 {
-	clear();
+    clear();
+    int a = add_vertex(Vec3(-1,-1,0));
+    int b = add_vertex(Vec3( 1,-1,0));
+    int c = add_vertex(Vec3( 1, 1,0));
+    int d = add_vertex(Vec3(-1, 1,0));
+    int e = add_vertex(Vec3( 0, 0, 1));
 
-	gl_update();
+    add_quad(a,d,c,b);
+    add_tri(a,b,e);
+    add_tri(b,c,e);
+    add_tri(c,d,e);
+    add_tri(d,a,e);
+
+    gl_update();
 }
 
 void MeshTri::create_anneau()
 {
-	clear();
+    clear();
 
-	gl_update();
+        const int nb = 40; // nombre de subdivisions
+        const float r1 = 2.0f; // grand rayon
+        const float r2 = 1.5f; // petit rayon
+        float a=0;             // angle: [0, 2PI[
+        for(int i=0;i<nb;++i)
+        {
+            Vec3 P(r1*std::cos(a),r1*std::sin(a), 0.0); // Point exterieur
+            add_vertex(P);
+            Vec3 Q(r2*std::cos(a),r2*std::sin(a), 0.0); // Point interieur
+            add_vertex(Q);
+            a += 2*M_PI/nb;
+        }
+
+        // les nb-1 premier quads
+        // Q1--Q3--Q5--.........--Q2nb-1
+        // |   |   |              |
+        // P0--P2--P4--.........--P2nb-2
+
+        for ( int i=0;i<nb-1;++i)
+            add_quad(2*i,2*i+2,2*i+3,2*i+1);
+
+        // et on referme avec un quad entre la derniere rangee et la premiere
+        add_quad(2*nb-2,0,1,2*nb-1);
+
+        gl_update();
 }
 
 void MeshTri::create_spirale()
 {
-	clear();
+    clear();
 
-	gl_update();
+        const int nb = 32; // nb subdiv dans un tour
+        const int nbt = 10;// nb de tours
+        const int n = nbt*nb; // nb de quad
+        const float h = 2.0f; // hauteur totale
+
+        float a = 0.0f; // angle
+        float z = 0.0f; // Z !
+        float r1 = 2.0f; // grand rayon
+
+        for(int i=0;i<n;++i)
+        {
+            Vec3 P(r1*std::cos(a), r1*std::sin(a), z);
+            add_vertex(P);
+            float r2 = r1-0.1f; // petit rayon
+            Vec3 Q(r2*std::cos(a), r2*std::sin(a), z+h/(4*nbt));// z+epsilon => plus joli !
+            add_vertex(Q);
+            a += 2*M_PI/nb; // angle++
+            z += h/n;       // Z++
+            r1 *= std::pow(0.1,1.0/n); // R = R*0.93
+        }
+
+        //  meme topo que pour l'anneau (sans refermer)
+        for ( int i=0;i<n-1;++i)
+            add_quad(2*i,2*i+2,2*i+3,2*i+1);
+
+        gl_update();
 }
 
 
 void MeshTri::revolution(const std::vector<Vec3>& poly)
 {
-	clear();
-
-	// Faire varier angle 0 -> 360 par pas de D degre
-	//   Faire tourner les sommets du polygon -> nouveau points
-
-	// on obtient une grille de M (360/D x poly.nb) points
-
-	// creation des quads qui relient ces points
-	// attention la derniere rangee doit etre reliee a la premiere
-
-	// on peut fermer le haut et le bas par ube ombrelle de triangles
-	gl_update();
+    clear();
+    int n = poly.size();
+    int m = 0;  // nb de colonnes
+    for (int alpha=0; alpha<360; alpha+=10)
+    {
+        Mat4 R = rotateY(alpha);
+        for (const Vec3& P: poly)
+        {
+            Vec3 Q = Vec3(R*Vec4(P,1));
+            add_vertex(Q);
+        }
+        m++;
+    }
+    // les quads
+    for (int j=0; j<m-1; ++j)
+    {
+        for(int i=0; i<n-1; ++i)
+        {
+            int k = j*n + i;
+            add_quad(k,k+1,k+1+n,k+n);
+        }
+    }
+    // la derniere rangee
+    for(int i=0; i<n-1; ++i)
+    {
+        add_quad((m-1)*n+i,(m-1)*n+i+1,i+1,i);
+    }
+    gl_update();
 }
 
 void MeshTri::compute_normals()

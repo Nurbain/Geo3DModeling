@@ -187,6 +187,7 @@ public:
 	 */
 	void tourne_quad(int q, float a);
 
+
 };
 
 #endif // MESHTRI_H

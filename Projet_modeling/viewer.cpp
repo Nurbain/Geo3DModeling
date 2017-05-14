@@ -18,7 +18,8 @@ Viewer::Viewer():
 	GRIS(0.5,0.5,0.5),
 	NOIR(0,0,0),
 	m_selected_quad(-1)
-{}
+{
+}
 
 
 void Viewer::init()
@@ -99,13 +100,57 @@ void Viewer::keyPressEvent(QKeyEvent *event)
 				m_mesh.create_cube();
 		break;
 
-			// e extrusion
-			// +/- decale
-			// z/Z shrink
-			// t/T tourne
+        case Qt::Key_E:
+            if(m_selected_quad == -1)
+                break;
 
-			// Attention au cas m_selected_quad == -1
+            m_mesh.extrude_quad(m_selected_quad);
+            break;
 
+        case Qt::Key_Plus :
+            if(m_selected_quad == -1)
+                break;
+
+            m_mesh.decale_quad(m_selected_quad , 0.1);
+
+            break;
+
+        case Qt::Key_Minus :
+            if(m_selected_quad == -1)
+                break;
+
+             m_mesh.decale_quad(m_selected_quad , -0.1);
+
+            break;
+
+        case Qt::Key_Z :
+            if(m_selected_quad == -1)
+                break;
+
+            if (event->modifiers() & Qt::ShiftModifier)
+                m_mesh.shrink_quad(m_selected_quad , -0.2);
+            else m_mesh.shrink_quad(m_selected_quad , 0.2);
+
+        break;
+
+
+        case Qt::Key_T :
+            if(m_selected_quad == -1)
+                break;
+
+            if (event->modifiers() & Qt::ShiftModifier)
+                m_mesh.tourne_quad(m_selected_quad , -10.0);
+            else m_mesh.tourne_quad(m_selected_quad , 10.0);
+
+
+        break;
+
+        case Qt::Key_S :
+            if(m_mesh.m_quad_indices == 0)
+                break;
+
+             algoStar();
+        break;
 
 		default:
 			break;
@@ -139,8 +184,6 @@ void Viewer::mousePressEvent(QMouseEvent* event)
 }
 
 
-
-
 Mat4 Viewer::getCurrentModelViewMatrix() const
 {
 	GLdouble gl_mvm[16];
@@ -166,4 +209,26 @@ Mat4 Viewer::getCurrentProjectionMatrix() const
 			pm[i][j] = float(gl_pm[i*4+j]);
 	}
 	return pm;
+}
+
+//Reproduit l'étoile du pdf
+void Viewer::algoStar()
+{
+    int last = 6;
+    int angle =1;
+    for(int i=0;i<6;i++)
+    {
+        //quad du cube de base selectionné
+        for(int j =1 ; j<=20;j++)
+        {
+            m_mesh.extrude_quad(i);
+            m_mesh.decale_quad(i,-0.5);
+            m_mesh.tourne_quad(i,0.6*angle);
+            m_mesh.shrink_quad(i,-0.1);
+            last++;
+            angle++;
+        }
+        angle=1;
+    }
+    m_selected_quad = -1;
 }

@@ -50,24 +50,58 @@ void PolygonEditor::draw(const Vec3& color)
 
 bool intersecte(const Vec3& A, const Vec3& B, const Vec3& C, const Vec3& D)
 {
-    return false;
+    Vec3 V1 = glm::cross(B-A,C-A);
+    Vec3 V2 = glm::cross(B-A,D-A);
+    Vec3 V3 = glm::cross(D-C,A-C);
+    Vec3 V4 = glm::cross(D-C,B-C);
+    return (std::signbit(V1.z)!=std::signbit(V2.z)) &&
+            (std::signbit(V3.z)!=std::signbit(V4.z));
 }
 
 
 void PolygonEditor::add_vertex(float x, float y)
 {
-
+    int nb = m_points.size();
+        bool croise=false;
+        Vec3 Q(x,y,0.0);
+        if (nb >1)
+        {
+            const Vec3& P = m_points[nb-1];
+            for(int i=1; i<nb-1; ++i)
+            {
+                if (intersecte(P,Q,m_points[i-1],m_points[i]))
+                    croise = true;
+            }
+        }
+        if (!croise)
+            m_points.push_back(Q);
 }
 
 void PolygonEditor::remove_last()
 {
+    if (!m_points.empty())
+            m_points.pop_back();
 }
 
 void PolygonEditor::clear()
 {
+    m_points.clear();
 }
 
 void PolygonEditor::lisse()
 {
+    uint64_t n = m_points.size();
+        std::vector<Vec3> subd;
+        subd.reserve(n*2-2);
+        subd.push_back(m_points[0]);
+
+        for (uint64_t i=1; i<n-1; ++i)
+        {
+            subd.push_back(0.25f*m_points[i-1] + 0.75f*m_points[i]);
+            subd.push_back(0.25f*m_points[i+1] + 0.75f*m_points[i]);
+        }
+        subd.push_back(m_points[n-1]);
+
+        m_points.swap(subd);
 }
 

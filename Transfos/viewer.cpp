@@ -53,22 +53,78 @@ void Viewer::init()
 
 void Viewer::draw_repere(const Mat4& global)
 {
-	//	// exemple de definition de fonction (lambda) locale
-	//	float b=2.2f;
-	//	auto fonction_locale = [&] (float a)
-	//	{
-	//		std::cout << "param a="<< a << " & global b="<< b <<std::endl;
-	//	};
+    Mat4 tr = global;
+    auto fleche = [&] (Vec3 coul)
+    {
+        m_prim.draw_cylinder(tr*translate(0,0,1.5)*scale(0.5,0.5,1.95), coul);
+        m_prim.draw_cone(tr*translate(0,0,3), coul);
+    };
 
-	//	//appel
-	//	fonction_locale(1.1f);
+    fleche(BLEU);
+
+    tr = global*rotateY(90);
+    fleche(ROUGE);
+
+    tr = global*rotateX(-90);
+    fleche(VERT);
 }
 
 
 
 void Viewer::draw_main()
 {
+    Mat4 transfo;
+        // param trf: transfo initiale, a: angle , s: longueur doigt
+        auto doigt = [&] (Mat4 trf, float a, float s) -> void
+        {
+            m_prim.draw_sphere(trf, BLANC);
 
+            trf *= rotateZ(a)*translate(s,0,0);
+            m_prim.draw_cube(trf*scale(1.7*s,0.5,0.8), ROUGE);
+
+            trf *= translate(s,0,0);
+            m_prim.draw_sphere(trf, BLANC);
+            trf *= rotateZ(a) * translate(s,0,0);
+            m_prim.draw_cube(trf*scale(1.7*s,0.5,0.8), VERT);
+
+            trf *= translate(s*0.7,0,0);
+            m_prim.draw_sphere(trf, BLANC);
+            trf *=rotateZ(a*1.2) * translate(s,0,0);
+            m_prim.draw_cube(trf*scale(1.2*s,0.5,0.8), BLEU);
+        };
+
+        // param trf: transfo initiale, b: angle
+        auto paume = [&] (Mat4 trf, float b)
+        {
+            m_prim.draw_sphere(trf, BLANC);
+            trf *= rotateZ(b/5);
+            trf *= translate(2,0,0);
+            m_prim.draw_cube(trf*scale(3,0.6,3), CYAN);
+            trf *= translate(1.5,0,0);
+
+            doigt(trf*translate(-1.0,0,-1.5)*rotateY(70), b*0.6,0.5);
+            doigt(trf*translate(0,0,-1)*rotateY(10), b*0.7, 1);
+            doigt(trf, b*0.8,1.1);
+            doigt(trf*translate(0,0,1)*rotateY(-10), b*0.9,0.9);
+        };
+
+        // param trf: transfo initiale, a: angle
+        auto bras = [&] (Mat4 trf, float a)
+        {
+            m_prim.draw_sphere(transfo, BLANC);
+            trf *= translate(3,0,0);
+            m_prim.draw_cube(trf*scale(5,2,2), CYAN);
+            trf *= translate(3,0,0);
+            trf *= rotateZ(a/5);
+            m_prim.draw_sphere(trf, BLANC);
+            trf *= translate(3,0,0);
+            m_prim.draw_cube(trf*scale(5.5,1.5,1.5), CYAN);
+            trf *= translate(3,0,0);
+
+            paume(trf,m_angle1);
+        };
+
+        bras(transfo,m_angle1);
 }
 
 void Viewer::draw_basic()
@@ -95,8 +151,13 @@ void Viewer::draw()
 			draw_repere(glob);
 		break;
 		case 2:
-			// coder ici les petits reperes qui tournet autour du grand repere
-
+        draw_repere(glob);
+        for (int a=0; a <360; a+=40)
+        {
+         // T = Rot_Plan  <- Rot axe plab <- decalage <- tourne Z vers centre <- petit/2 <- repere tourne / son X
+            glob = rotateZ(10+0.1*m_compteur)*rotateY(a-m_compteur)*translate(6,0,0)*rotateY(-90)*scale(0.5,0.5,0.5)* rotateX(a/4+2*m_compteur);
+            draw_repere(glob);
+        }
 		break;
 		case 3:
 			draw_main();
@@ -148,9 +209,17 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 
 void Viewer::animate()
 {
-	m_compteur += 1;
 
-	// faire varier les angles ici pour animer
+    m_compteur += 1;
+
+    int x = m_compteur%180;
+
+    if (x<90)
+        m_angle1 = x;
+    else
+        m_angle1 = 179-x;
+
+    m_angle2 = 0.3*m_angle1;
 }
 
 
