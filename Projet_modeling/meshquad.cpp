@@ -103,19 +103,21 @@ void MeshQuad::draw(const Vec3& color)
 	m_shader_color->stopUseProgram();
 }
 
-//Fait - 100%
+//Clear les listes
 void MeshQuad::clear()
 {
     m_points.clear();
     m_quad_indices.clear();
 }
 
+//Ajoute un point
 int MeshQuad::add_vertex(const Vec3& P)
 {
     m_points.push_back(P);
     return m_points.size()-1;
 }
 
+//Ajoute un quadrilatère
 void MeshQuad::add_quad(int i1, int i2, int i3, int i4)
 {
     m_quad_indices.push_back(i1);
@@ -124,6 +126,8 @@ void MeshQuad::add_quad(int i1, int i2, int i3, int i4)
     m_quad_indices.push_back(i4);
 }
 
+
+//Convert les quad en triangles
 void MeshQuad::convert_quads_to_tris(const std::vector<int>& quads, std::vector<int>& tris)
 {
     // a------b
@@ -138,12 +142,12 @@ void MeshQuad::convert_quads_to_tris(const std::vector<int>& quads, std::vector<
     for(int i=0 ; i<quads.size();i=i+4)
     {
 
-        //Triangle ADC
+        //Triangle ABD
         tris.push_back(quads[i]);
         tris.push_back(quads[i+1]);
         tris.push_back(quads[i+3]);
 
-        //Triangle CBA
+        //Triangle BCD
         tris.push_back(quads[i+1]);
         tris.push_back(quads[i+2]);
         tris.push_back(quads[i+3]);
@@ -154,6 +158,7 @@ void MeshQuad::convert_quads_to_tris(const std::vector<int>& quads, std::vector<
     // Attention a respecter l'orientation des triangles
 }
 
+//Convert les quad en edges
 void MeshQuad::convert_quads_to_edges(const std::vector<int>& quads, std::vector<int>& edges)
 {
     // a------b
@@ -189,25 +194,25 @@ void MeshQuad::convert_quads_to_edges(const std::vector<int>& quads, std::vector
         }
 
         if(e1 == true ){
-            //Arrete AB
+            //Arete AB
             edges.push_back(quads[i]);
             edges.push_back(quads[i+1]);
         }
 
         if(e2==true){
-            //Arrete BC
+            //Arete BC
             edges.push_back(quads[i+1]);
             edges.push_back(quads[i+2]);
         }
 
         if(e3==true){
-            //Arrete CD
+            //Arete CD
             edges.push_back(quads[i+2]);
             edges.push_back(quads[i+3]);
         }
 
         if(e4==true){
-            //Arrete DA
+            //Arete DA
             edges.push_back(quads[i+3]);
             edges.push_back(quads[i]);
         }
@@ -230,6 +235,7 @@ void MeshQuad::convert_quads_to_edges(const std::vector<int>& quads, std::vector
 
 }
 
+//Créé un cube
 void MeshQuad::create_cube()
 {
     clear();
@@ -256,6 +262,7 @@ void MeshQuad::create_cube()
     gl_update();
 }
 
+//Calcul de la normal du quad
 Vec3 MeshQuad::normal_of_quad(const Vec3& A, const Vec3& B, const Vec3& C, const Vec3& D)
 {
     //Vecteur directeur
@@ -299,6 +306,7 @@ Vec3 MeshQuad::normal_of_quad(const Vec3& A, const Vec3& B, const Vec3& C, const
     return  moyenne;
 }
 
+//Calcul de l'air d'un quad
 float MeshQuad::area_of_quad(const Vec3& A, const Vec3& B, const Vec3& C, const Vec3& D)
 {
     //Vecteur directeur
@@ -340,77 +348,36 @@ float MeshQuad::area_of_quad(const Vec3& A, const Vec3& B, const Vec3& C, const 
     return airquad;
 }
 
+//Regarde si un point est dans le quad
 bool MeshQuad::is_points_in_quad(const Vec3& P, const Vec3& A, const Vec3& B, const Vec3& C, const Vec3& D)
 {
 
-    //Amelioration
-    /*Vect normal , AD , DC , CB , BA
-     * prodVec n,AD ect
-     * 1 prodScalire prodvecAD , P ect
-     * 2 prodScalaire prodvec (AD,A) , prodvec(DC,D)
-     * if (1 > 2 ect )
-     * true
-     */
-    /*
-    //Distance point P par rapport au plan AB vers toi
-    bool dessusAB = true , dessusBC = true , dessusCD=true , dessusDA=true;
-    // On sait que P est dans le plan du quad.
 
-	// P est-il au dessus des 4 plans contenant chacun la normale au quad et une arete AB/BC/CD/DA ?
-	// si oui il est dans le quad
+      Vec3 normale = normal_of_quad(A,B,C,D);
+      Vec3 AB = cross(n,B-A);
+      Vec3 BC = cross(n,C-B);
+      Vec3 CD = cross(n,D-C);
+      Vec3 DA = cross(n,A-D);
 
-    //A gauche signifie au dessus donc , det avec AB
-    int det = (A.x*B.y*P.z)+(B.x*P.y*A.z)+(P.x*A.y*B.z) - ((P.x*B.y*A.z)+(B.x*A.y*P.z)+(A.x*P.y*B.z));
-    if(det > 0)
-        dessusAB = false;
+      double ScalAB = dot(AB,P);
+      double ScaleBC = dot(BC,P);
+      double ScaleCD = dot(CD,P);
+      double ScaleDA = dot(DA,P);
 
-    //det BC
-    int det2 = (B.x*C.y*P.z)+(C.x*P.y*B.z)+(P.x*B.y*C.z)  - ((P.x*C.y*B.z)+(C.x*B.y*P.z)+(B.x*P.y*C.z));
-    if(det2 > 0)
-        dessusBC = false;
+      double da = dot(AB,A);
+      double db = dot(BC,B);
+      double dc = dot(CD,C);
+      double dd = dot(DA,D);
 
-    //CD
-    int det3 = (C.x*D.y*P.z)+(D.x*P.y*C.z)+(P.x*C.y*D.z)  - ((P.x*D.y*C.z)+(D.x*C.y*P.z)+(C.x*P.y*D.z));
-    if(det3 > 0)
-        dessusCD = false;
-
-    //DA
-    int det4 = (D.x*A.y*P.z)+(A.x*P.y*D.z)+(P.x*D.y*A.z)  - ((P.x*A.y*D.z)+(A.x*D.y*P.z)+(D.x*P.y*A.z));
-    if(det4 > 0)
-        dessusDA = false;
-
-    if((dessusAB==true) && (dessusBC==true) && (dessusCD==true) && (dessusDA==true))
-        return true;
-    else
-        return false;
-
-    return false;*/
-
-    Vec3 n = normal_of_quad(A,B,C,D);
-      Vec3 v1 = cross(n,B-A);
-      Vec3 v2 = cross(n,C-B);
-      Vec3 v3 = cross(n,D-C);
-      Vec3 v4 = cross(n,A-D);
-
-      double p1 = dot(v1,P);
-      double p2 = dot(v2,P);
-      double p3 = dot(v3,P);
-      double p4 = dot(v4,P);
-
-      double da = dot(v1,A);
-      double db = dot(v2,B);
-      double dc = dot(v3,C);
-      double dd = dot(v3,D);
-
-      if(p1>da && p2 > db && p3 > dc && p4 > dd)
+      if(ScalAB>da && ScaleBC > db && ScaleCD > dc && ScaleDA > dd)
           return true;
       return false;
 
 }
 
+//Regarde si un rayon intersect un quad
 bool MeshQuad::intersect_ray_quad(const Vec3& P, const Vec3& Dir, int q, Vec3& inter)
 {
-    bool res = false;
 	// recuperation des indices de points
     int i1 = m_quad_indices[q*4];
     int i2 = m_quad_indices[q*4+1];
@@ -432,10 +399,10 @@ bool MeshQuad::intersect_ray_quad(const Vec3& P, const Vec3& Dir, int q, Vec3& i
     //trouver alpha :
 
     float alpha = (dequation - glm::dot(normal,P))/(glm::dot(normal,Dir));
-    // voir si I est dans le plan
+
 	// alpha => calcul de I
     Vec3 I = P + alpha*Dir;
-	// I dans le quad ?
+    // I dans le quad ?
     //regarder si I dans le plan
     if(glm::dot(normal,I) != dequation)
         return false;
@@ -443,14 +410,14 @@ bool MeshQuad::intersect_ray_quad(const Vec3& P, const Vec3& Dir, int q, Vec3& i
     // si dans le plan alors test dans le quad
     if(is_points_in_quad(I,A,B,C,D))
     {
-        res = true;
         inter = I;
+         return true;
     }
 
-    return res;
+    return false;
 }
 
-
+//Regarde la plus proche intersection
 int MeshQuad::intersected_visible(const Vec3& P, const Vec3& Dir)
 {
     int inter = -1;
@@ -532,6 +499,7 @@ Mat4 MeshQuad::local_frame  (int q)
 
     return res;
 }
+
 
 void MeshQuad::extrude_quad(int q)
 {
@@ -630,7 +598,6 @@ void MeshQuad::shrink_quad(int q, float s)
     Vec3 *C = &m_points[i3];
     Vec3 *D = &m_points[i4];
 
-	// ici  pas besoin de passer par une matrice
 	// calcul du centre
     Vec3 centre = *A+*B+*C+*D;
     centre.x = centre.x / 4;
@@ -645,7 +612,6 @@ void MeshQuad::shrink_quad(int q, float s)
 
 	gl_update();
 }
-
 
 void MeshQuad::tourne_quad(int q, float a)
 {
